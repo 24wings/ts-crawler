@@ -1,0 +1,17 @@
+{
+    "name": "ts-crawler",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "ts-node core/Crawler"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@types/cheerio": "^0.22.0",
+        "@types/superagent": "^2.0.36",
+        "cheerio": "^0.22.0",
+        "superagent": "^3.5.0"
+    }
+}
