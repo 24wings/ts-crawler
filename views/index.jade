@@ -1,0 +1,27 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title}
+  script(src="jquery/dist/jquery.min.js")
+  script(src="/socket.io-client/dist/socket.io.js")
+  #blocks
+      #list-page(style={width:'50%;'})
+        h2 列表页
+      #item-page(style={width:'50%'})
+        
+  script.
+    
+    var socket = io('//localhost:3000');
+    socket.on('socketToMe', function (data) {
+      console.log(data);
+    });
+    socket.on('crawler-listPageUrl',function(data){
+      console.log(data);
+      $('#list-page').append('<h4>'+data+'</h4>');
+    });
+    socket.on('crawler-itemUrls',function(itemUrls){
+      itemUrls.forEach(function(item){
+        $('#item-page').append('<h4>'+item+'</h4>');
+      })
+    })
