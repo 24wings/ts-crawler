@@ -1,0 +1,1 @@
+export { configs as config } from './bixiawenxue';
