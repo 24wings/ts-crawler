@@ -18,6 +18,13 @@ export class UnVisitUrls<T> {
             this.queue.enqueue(url);
         }
     }
+    enqueueFirst(url: T) {
+        console.log(this.has(url));
+        if (!this.has(url)) {
+            console.log('入列到头部' + url);
+            this.queue.enqueueFirst(url);
+        }
+    }
 
     hasNext(): boolean {
         return !this.queue.isEmpty();

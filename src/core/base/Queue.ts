@@ -21,4 +21,8 @@ export class Queue<T> {
     has(item: T): boolean {
         return this.items.findIndex(el => item == el) !== -1 ? true : false;
     }
+    //加入到队列头部,更高的优先级
+    enqueueFirst(item: T) {
+        this.items.unshift(item);
+    }
 }

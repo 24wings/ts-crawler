@@ -1,11 +1,15 @@
 import * as socket from 'socket.io';
 import superagent = require('superagent');
 import fs = require('fs');
+import URL = require('url');
+import uuid = require('uuid');
 import { ExtractType } from './ExtractType';
-import path = require('url');
+import path = require('path');
 import cheerio = require('cheerio');
 import { UnVisitUrls } from './UnvisitUrls';
 import { config } from './configs';
+import { CONFIG } from './Config';
+import { IEight0, eight0Model } from './model';
 
 
 
@@ -61,27 +65,50 @@ export class Crawler {
             await new Promise((resovle, reject) => {
                 setTimeout(() => { resovle() }, 5000);
             });
-            for (var i = 0; i < 50; i++) {
+            for (var i = 0; i < 5; i++) {
                 if (!this.unvisitedLink.hasNext()) break;
+                // 检查数据库里是否已经访问,可以用$or操作一下检查5个
                 var url = this.unvisitedLink.dequeue();
-                this.log('dequeue.txt', url);
-                this.config.listUrlRegexes.forEach(regexp => {
-                    regexp.test(url) ? this.extractLinks(url) : '';
-                });
-                this.config.contentUrlRegexes.forEach(regexp => {
-                    regexp.test(url) ? this.extractContent(url) : '';
-                });
 
+                var isExisit = await eight0Model.findOne({ url }).count().exec();
+                // 若已经入库,不再抓取
+                if (isExisit) {
+                    this.log('已经入库', url);
+                    break;
+                } else {
+                    this.log('dequeue.txt', url);
+                    this.config.listUrlRegexes.forEach(regexp => {
+                        regexp.test(url) ? this.extractLinks(url) : '';
+                    });
+                    this.config.contentUrlRegexes.forEach(regexp => {
+                        regexp.test(url) ? this.extractContent(url) : '';
+                    });
+
+                }
             }
 
         }
 
+    }
+    async downloadPage(url: string, data: string) {
+        var filename = path.join(CONFIG.downloadsDir, uuid.v4() + '.html');
 
+        if (fs.existsSync(url)) {
+            this.log('错误', `文件名:${filename} 已经存在`);
+        } else {
+            fs.writeFile(filename, data, async (err) => {
+                if (err) this.log('错误', err);
+                // 内容提取完了,将链接和爬取的html文件入库
+                var model = await new eight0Model({ url, filename }).save()
+                this.log("下载文件", model.filename);
+            });
+        }
 
     }
     async extractLinks(url: string) {
 
         var response = await superagent.get(url).withCredentials().send();
+        await this.downloadPage(url, response.text);
         this.visitedLink.add(url);
         this.extreactLinksFromText(url, response.text);
 
@@ -90,9 +117,8 @@ export class Crawler {
         var response = await superagent.get(url).withCredentials().send();
         this.extreactLinksFromText(url, response.text);
         var $ = cheerio.load(response.text);
-
         var data: any = {};
-        console.log(url);
+        await this.downloadPage(url, response.text);
         this.config.fields.forEach(field => {
             data.name = field.name;
             data.alias = field.alias;
@@ -104,9 +130,9 @@ export class Crawler {
                     data.value = $(field.extract.selector).text();
                     break;
             }
+
         });
         this.dataSet.push(data);
-        this.log('data.txt', data);
 
 
     }
@@ -116,7 +142,7 @@ export class Crawler {
             let href: string = link.attribs['href'];
             if (href) {
                 if ((!href.startsWith('http://')) && (!href.startsWith('https://'))) {
-                    href = path.resolve(url, href);
+                    href = URL.resolve(url, href);
                 }
                 if (!this.visitedLink.has(href)) {
                     /**
@@ -132,7 +158,7 @@ export class Crawler {
                     this.config.contentUrlRegexes.forEach(regexp => {
                         if (regexp.test(href)) {
                             this.log('detailUrl.txt', href);
-                            this.unvisitedLink.enqueue(href);
+                            this.unvisitedLink.enqueueFirst(href);
                         }
                     });
 
@@ -153,10 +179,9 @@ export class Crawler {
 
     log(fileName, data) {
         console.log(fileName, data);
-
         fs.appendFile('logs/' + fileName, data + ',\n', (err) => {
             if (err) throw err;
-            console.log(data);
+
         });
     }
 
