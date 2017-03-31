@@ -9,7 +9,7 @@ import cheerio = require('cheerio');
 import { UnVisitUrls } from './UnvisitUrls';
 import { config } from './configs';
 import { CONFIG } from './Config';
-import { IEight0, eight0Model } from './model';
+import { IEight0, eight0Model, ririluModel, IRirilu } from './model';
 
 
 
@@ -38,11 +38,14 @@ export interface CrawlerConfig {
     scanUrls: string[];
     contentUrlRegexes: RegExp[];// 符合内容的链接
     listUrlRegexes: RegExp[];//符合的列表页
-    fields: Field[];
+    // fields: Field[];
     extractFieldCallBack?: (field, data, page) => Data;
 }
 
+export class BaseCrawler {
+    // virtual configs(){}
 
+}
 
 export class Crawler {
     visitedLink = new Set<string>();
@@ -65,12 +68,12 @@ export class Crawler {
             await new Promise((resovle, reject) => {
                 setTimeout(() => { resovle() }, 5000);
             });
-            for (var i = 0; i < 5; i++) {
+            for (var i = 0; i < 20; i++) {
                 if (!this.unvisitedLink.hasNext()) break;
                 // 检查数据库里是否已经访问,可以用$or操作一下检查5个
                 var url = this.unvisitedLink.dequeue();
 
-                var isExisit = await eight0Model.findOne({ url }).count().exec();
+                var isExisit = await ririluModel.findOne({ url }).count().exec();
                 // 若已经入库,不再抓取
                 if (isExisit) {
                     this.log('已经入库', url);
@@ -98,7 +101,7 @@ export class Crawler {
             fs.writeFile(filename, data, async (err) => {
                 if (err) this.log('错误', err);
                 // 内容提取完了,将链接和爬取的html文件入库
-                var model = await new eight0Model({ url, filename }).save()
+                var model = await new ririluModel({ url, filename }).save()
                 this.log("下载文件", model.filename);
             });
         }
@@ -116,6 +119,7 @@ export class Crawler {
     }
     async extractData() {
         var data: any = {};
+        /*
         this.config.fields.forEach(field => {
             data.name = field.name;
             data.alias = field.alias;
@@ -127,8 +131,9 @@ export class Crawler {
                     data.value = $(field.extract.selector).text();
                     break;
             }
-            this.dataSet.push(data);
+
         });
+        */
     }
     extreactLinksFromText(url: string, text: string) {
         var $ = cheerio.load(text);

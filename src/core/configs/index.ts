@@ -1,1 +1,1 @@
-export { configs as config } from './bixiawenxue';
+export { configs as config } from './ririlu';

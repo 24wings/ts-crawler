@@ -9,7 +9,7 @@ import socket = require('socket.io');
 
 
 
-var index = require('./routes/index');
+
 
 
 var app = express();
@@ -53,8 +53,11 @@ app.use(function (req, res, next) {
     res.locals.path = req.path;
     next();
 });
-
-app.use('/', index);
+var data = require('./data');
+app.use('/', (req, res, next) => {
+    res.render('index',
+        { data });
+});
 
 
 // catch 404 and forward to error handler
