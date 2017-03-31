@@ -47,7 +47,7 @@ export interface CrawlerConfig {
 export class Crawler {
     visitedLink = new Set<string>();
     unvisitedLink = new UnVisitUrls<string>();
-    dataSet: { image: string, title: string }[] = [];
+
     // unVisitedLink= new Queue()
     /**
      * 爬虫的启动入口
@@ -92,7 +92,6 @@ export class Crawler {
     }
     async downloadPage(url: string, data: string) {
         var filename = path.join(CONFIG.downloadsDir, uuid.v4() + '.html');
-
         if (fs.existsSync(url)) {
             this.log('错误', `文件名:${filename} 已经存在`);
         } else {
@@ -106,19 +105,17 @@ export class Crawler {
 
     }
     async extractLinks(url: string) {
-
         var response = await superagent.get(url).withCredentials().send();
         await this.downloadPage(url, response.text);
         this.visitedLink.add(url);
         this.extreactLinksFromText(url, response.text);
-
     }
     async extractContent(url: string) {
         var response = await superagent.get(url).withCredentials().send();
-        this.extreactLinksFromText(url, response.text);
-        var $ = cheerio.load(response.text);
-        var data: any = {};
         await this.downloadPage(url, response.text);
+    }
+    async extractData() {
+        var data: any = {};
         this.config.fields.forEach(field => {
             data.name = field.name;
             data.alias = field.alias;
@@ -130,11 +127,8 @@ export class Crawler {
                     data.value = $(field.extract.selector).text();
                     break;
             }
-
+            this.dataSet.push(data);
         });
-        this.dataSet.push(data);
-
-
     }
     extreactLinksFromText(url: string, text: string) {
         var $ = cheerio.load(text);
